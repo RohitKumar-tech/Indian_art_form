@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Interactive Map of Indian Religious Paintings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Leaflet CSS for map functionality -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <!-- Tailwind CSS for modern UI styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for better typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* Using Inter font as the base font */
+    body,
+    html {
+      margin: 0;
+      height: 100%;
+      font-family: "Inter", sans-serif;
+      background-color: #111827; /* Dark blue-gray background */
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    /* Custom Leaflet popup styling */
+    .custom-popup .leaflet-popup-content-wrapper {
+      background: #1f2937; /* Darker gray background */
+      color: #f3f4f6; /* Light text */
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      border: 1px solid #374151;
+    }
+    .custom-popup .leaflet-popup-content {
+      margin: 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+      max-width: 280px;
+    }
+    .custom-popup .leaflet-popup-tip-container {
+      width: 30px;
+      height: 15px;
+    }
+    .custom-popup .leaflet-popup-tip {
+      background: #1f2937;
+    }
+    .custom-popup img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-top: 10px;
+      border: 1px solid #4b5563;
+    }
+    .custom-popup b {
+      color: #93c5fd; /* Light blue for titles */
+      font-size: 18px;
+    }
+    /* Style for the region polygons on hover */
+    .leaflet-interactive:hover {
+      fill-opacity: 0.5;
+      cursor: pointer;
+    }
+    /* Shift controls downward to avoid overlap with popups */
+    .controls {
+      /* Remove top: 180px !important; */
+      /* Remove media query for .controls */
+    }
+  </style>
+</head>
+<body class="antialiased">
+  <!-- Main map container -->
+  <div id="map"></div>
+  <!-- UI Controls positioned over the map -->
+  <div
+    class="controls absolute top-6 left-6 z-[1000] bg-gray-900/75 backdrop-blur-md text-white p-4 rounded-xl shadow-2xl w-full max-w-xs md:max-w-sm text-center"
+  >
+    <h1 class="text-lg font-bold text-blue-300">Indian Artistic Heritage</h1>
+    <p class="text-sm text-gray-300 mt-1">
+      Click a highlighted region to explore its traditional painting style.
+    </p>
+    <button
+      id="darkModeToggle"
+      class="w-full mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-sm font-semibold transition-colors"
+    >
+      Toggle Dark Mode
+    </button>
+  </div>
+  <!-- Legend -->
+  <div
+    class="legend absolute bottom-4 left-4 z-[1000] bg-gray-900/75 backdrop-blur-md text-white p-3 rounded-lg shadow-lg text-xs"
+  >
+    <div class="flex items-center">
+      <span
+        class="inline-block w-3 h-3 mr-2 rounded-sm border border-teal-400/80"
+        style="background:rgba(45, 212, 191, 0.3);"
+      ></span>
+      Region of Origin
+    </div>
+  </div>
+  <!-- Leaflet JavaScript -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    // --- MAP INITIALIZATION ---
+    const map = L.map("map", { zoomControl: false }).setView([22.0, 79.0], 5); // Centered on India
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    // Tile layers for light and dark modes
+    const lightTiles = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      }
+    );
+    const darkTiles = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      }
+    ).addTo(map); // Start in dark mode
+
+    // --- DATA ---
+    // Using curated image URLs for each painting style
+
+    const paintingStyles = {
+      Pattachitra: {
+        region: [
+          [20.5, 85.5],
+          [20.0, 86.2],
+          [19.5, 86.0],
+          [19.3, 85.4],
+          [19.9, 85.1],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/1/15/Extrait_de_Chandi_Mangal_de_Meena_Chitrakar_%28Naya_Bengale%29_%281439706046%29.jpg",
+        info:
+          "Originating in Odisha, Pattachitra is a traditional cloth-based scroll painting. These intricate paintings depict mythological narratives and folktales, especially from the Jagannath and Vaishnava traditions.",
+      },
+      "Tanjore Painting": {
+        region: [
+          [11.2, 78.8],
+          [11.0, 79.5],
+          [10.5, 79.4],
+          [10.6, 78.7],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/f/fb/Thanjavur_art_from_south_India.jpg",
+        info:
+          "From Thanjavur, Tamil Nadu, this style is known for its rich colors, gold foil embellishments, and inlays of glass beads or gems. The subjects are typically Hindu deities and saints.",
+      },
+      "Madhubani Painting": {
+        region: [
+          [26.8, 85.8],
+          [26.6, 86.5],
+          [26.1, 86.4],
+          [26.0, 85.7],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/6/67/Madhubani_Mahavidyas.jpg",
+        info:
+          "Hailing from the Mithila region of Bihar, Madhubani art is characterized by complex geometric patterns and vibrant natural colors, depicting scenes from mythology and nature.",
+      },
+      "Kangra Painting": {
+        region: [
+          [32.5, 76.0],
+          [32.3, 76.6],
+          [31.8, 76.5],
+          [31.7, 75.9],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/0/0c/Attributed_to_Khushala%2C_Indian%2C_active_late_18th_century_-_The_Gods_Sing_and_Dance_for_Shiva_and_Parvati_-_Google_Art_Project.jpg",
+        info:
+          "From the Kangra Valley in Himachal Pradesh, this style is celebrated for its ethereal and delicate quality. The themes are often romantic, famously depicting the love story of Radha and Krishna.",
+      },
+      "Phad Painting": {
+        region: [
+          [26.0, 74.2],
+          [25.8, 75.0],
+          [25.0, 74.8],
+          [24.8, 74.0],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/e/e2/Pabuji_ka_phad_02.JPG",
+        info:
+          "A folk art tradition from Rajasthan, Phad is a large-scale scroll painting that narrates the epic tales of local folk deities like Pabuji and Devnarayan, characterized by bold lines and vibrant colors.",
+      },
+      "Mughal Painting": {
+        region: [
+          [28.7, 77.2],
+          [27.2, 78.0],
+          [27.5, 79.0],
+          [29.0, 78.0],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/f/ff/Shahjahan_on_globe%2C_mid_17th_century.jpg",
+        info:
+          "Flourishing in the Mughal courts, this style is a blend of Indian, Persian and Islamic traditions. It's known for its sophisticated miniatures depicting courtly life, portraits, and nature with fine detail.",
+      },
+      "Mysore Painting": {
+        region: [
+          [12.9, 76.0],
+          [12.5, 77.2],
+          [11.8, 77.0],
+          [12.0, 76.2],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/5/5d/Mysore_Painting.jpg",
+        info:
+          "An important form of classical South Indian painting that originated in and around the town of Mysuru in Karnataka. Known for its elegance, muted colours, and attention to detail, often using gesso for relief work.",
+      },
+      "Kalighat Painting": {
+        region: [
+          [22.8, 88.2],
+          [22.7, 88.5],
+          [22.4, 88.5],
+          [22.3, 88.2],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/0/0b/India%2C_Kalighat_painting%2C_19th_century_-_Two_Aspects_of_Kali-_Kali_Enshrined_-_1980.216.b_-_Cleveland_Museum_of_Art.jpg",
+        info:
+          "Originated in 19th-century Calcutta, this style is known for its bold, sweeping brush lines and satirical depiction of 'babu' society alongside religious themes, created for pilgrims visiting the Kalighat temple.",
+      },
+      "Warli Painting": {
+        region: [
+          [20.4, 73.0],
+          [20.2, 73.8],
+          [19.6, 73.6],
+          [19.7, 72.9],
+        ],
+        img:
+          "https://upload.wikimedia.org/wikipedia/commons/8/85/Warli_painting_in_Warli.JPG",
+        info:
+          "A tribal art form from the North Sahyadri Range in Maharashtra. It uses basic geometric shapes like circles, triangles, and squares to create rhythmic patterns depicting scenes of daily life, nature, and rituals.",
+      },
+    };
+
+    // --- FUNCTIONS ---
+
+    // Draws all painting regions on the map and binds popups to them
+    function drawArtRegions() {
+      const fallbackImg =
+        "https://placehold.co/400x300/1f2937/f3f4f6?text=Image+Not+Found";
+
+      for (const styleName in paintingStyles) {
+        const style = paintingStyles[styleName];
+        if (!style.region) continue;
+        const popupContent = `
+          <div>
+            <b>${styleName}</b>
+            <p class="my-2">${style.info}</p>
+            <img src="${style.img}" alt="Image of ${styleName}" onerror="this.onerror=null;this.src='${fallbackImg}';" />
+          </div>
+        `;
+        const regionPolygon = L.polygon(style.region, {
+          color: "#2dd4bf",
+          weight: 1.5,
+          fillColor: "#14b8a6",
+          fillOpacity: 0.3,
+          className: "region-polygon",
+        }).addTo(map);
+        regionPolygon.bindPopup(popupContent, { className: "custom-popup" });
+      }
+    }
+    // --- EVENT LISTENERS ---
+
+    document
+      .getElementById("darkModeToggle")
+      .addEventListener("click", () => {
+        if (map.hasLayer(darkTiles)) {
+          map.removeLayer(darkTiles);
+          map.addLayer(lightTiles);
+        } else {
+          map.removeLayer(lightTiles);
+          map.addLayer(darkTiles);
+        }
+      });
+    // --- INITIALIZATION ---
+    function initialize() {
+      drawArtRegions();
+    }
+    // Run the initialization function when the DOM is ready
+    document.addEventListener("DOMContentLoaded", initialize);
+  </script>
+</body>
+</html>
